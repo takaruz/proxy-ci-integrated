@@ -1,0 +1,73 @@
+version: '2'
+services:
+  proxy:
+    image: nginx
+    container_name: nginx-proxy
+    volumes:
+      - ./proxy-nginx/public_html:/usr/share/nginx/html/
+      - ./proxy-nginx/config:/etc/nginx/conf.d/
+      - ./proxy-nginx/log:/var/log/nginx/
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    links:
+      - master
+      - myadmin
+    extra_hosts:
+      - "app.dev:${IP}"
+      
+  master:
+    image: fg-image
+    container_name: ci
+    volumes:
+      - ./master:/var/www/html
+      - ./tmp/master:/tmp
+      - ./sonar-runner/conf:/opt/sonar-runner/conf
+      - ./conf-ci/php.ini:/usr/local/etc/php/php.ini
+      - /etc/localtime:/etc/localtime:ro
+      # need repository mapper
+    links:
+      - database
+    extra_hosts:
+      - "app.dev:${IP}"
+      
+  database:
+    image: mysql
+    container_name: database
+    volumes:
+      - ./database:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: PASSWORDFORMYSQL
+  myadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: myadmin
+    links:
+      - database:db
+    ports:
+      - "8080:80"
+  # optional container
+  worker-1:
+    image: fg-image
+    container_name: worker-1
+    volumes:
+      - ./worker-1:/var/www/html
+      - ./tmp/worker-1:/tmp
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "8888:80"
+    extra_hosts:
+      - "app.dev:${IP}"
+  worker-2:
+    image: fg-image
+    container_name: worker-2
+    volumes:
+      - ./worker-2:/var/www/html
+      - ./tmp/worker-2:/tmp
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "9999:80"
+    extra_hosts:
+      - "app.dev:${IP}"
